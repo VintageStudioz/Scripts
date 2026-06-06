@@ -1,4 +1,4 @@
--- [[ VINTAGE STUDIOS ADVANCED MULTI-HACK SCRIPT PRO ]] --
+-- [[ VINTAGE STUDIOS ADVANCED MULTI-HACK SCRIPT PRO ]] --
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
