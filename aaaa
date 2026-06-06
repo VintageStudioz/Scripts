@@ -1,0 +1,572 @@
+-- [[ VINTAGE STUDIOS ADVANCED MULTI-HACK SCRIPT PRO ]] --
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+-- // Configurations
+local Config = {
+    AimbotEnabled = false,
+    AimbotKey = Enum.KeyCode.A,
+    LockPart = "Head",
+    
+    EspEnabled = false,
+    EspKey = Enum.KeyCode.E,
+    
+    WallhackEnabled = false,
+    WallhackKey = Enum.KeyCode.W,
+    
+    FovEnabled = false,
+    FovRadius = 200, 
+    FovMin = 50,
+    FovMax = 1000,
+    FovColor = Color3.fromRGB(235, 94, 40),
+
+    AutoFarmEnabled = false,
+    AutoShootEnabled = false,
+    AutoShootKey = Enum.KeyCode.J,
+    
+    AntiCheatBypass = false,
+    AntiCheatKey = Enum.KeyCode.K,
+
+    MinimizeKey = Enum.KeyCode.Tab,
+    IsMinimized = false,
+
+    RapidFireEnabled = false,
+    RapidFireKey = Enum.KeyCode.N
+}
+
+-- // Render Vector FOV Circle using Core Drawing API
+local FovCircle = Drawing.new("Circle")
+FovCircle.Thickness = 2
+FovCircle.NumSides = 60
+FovCircle.Radius = Config.FovRadius
+FovCircle.Filled = false
+FovCircle.Color = Config.FovColor
+FovCircle.Visible = false
+
+-- // Core UI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VintageStudiosUltimateProUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- // 1. Vintage Studios Opening Splash Screen
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+LoadingFrame.BackgroundTransparency = 0.1
+LoadingFrame.ZIndex = 10
+LoadingFrame.Parent = ScreenGui
+
+local LoadingText = Instance.new("TextLabel")
+LoadingText.Size = UDim2.new(0, 400, 0, 50)
+LoadingText.Position = UDim2.new(0.5, -200, 0.45, -25)
+LoadingText.BackgroundTransparency = 1
+LoadingText.Font = Enum.Font.GothamBold
+LoadingText.Text = "Vintage Studios is opening..."
+LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadingText.TextSize = 28
+LoadingText.Parent = LoadingFrame
+
+task.wait(2.2)
+LoadingFrame:Destroy()
+
+-- // 2. Main Window Panel
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 550, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+-- Draggable Title TopBar
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 8)
+TopCorner.Parent = TopBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.Text = "VINTAGE STUDIOS"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 15
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+-- Close Button on TopBar
+local CloseUiBtn = Instance.new("TextButton")
+CloseUiBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseUiBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseUiBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseUiBtn.Font = Enum.Font.GothamBold
+CloseUiBtn.Text = "X"
+CloseUiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseUiBtn.TextSize = 14
+CloseUiBtn.Parent = TopBar
+local CloseUiCorner = Instance.new("UICorner")
+CloseUiCorner.CornerRadius = UDim.new(0, 6)
+CloseUiCorner.Parent = CloseUiBtn
+
+-- Sidebar Navigation Layout
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 140, 1, -40)
+Sidebar.Position = UDim2.new(0, 0, 0, 40)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 4)
+UIListLayout.Parent = Sidebar
+
+-- Independent Page Views Container
+local PageContainer = Instance.new("Frame")
+PageContainer.Size = UDim2.new(1, -150, 1, -50)
+PageContainer.Position = UDim2.new(0, 145, 0, 45)
+PageContainer.BackgroundTransparency = 1
+PageContainer.Parent = MainFrame
+
+local Pages = {}
+
+local function CreatePage(name)
+    local Page = Instance.new("Frame")
+    Page.Size = UDim2.new(1, 0, 1, 0)
+    Page.BackgroundTransparency = 1
+    Page.Visible = false
+    Page.Parent = PageContainer
+    
+    local TabButton = Instance.new("TextButton")
+    TabButton.Size = UDim2.new(1, 0, 0, 32)
+    TabButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    TabButton.BorderSizePixel = 0
+    TabButton.Font = Enum.Font.GothamSemibold
+    TabButton.Text = "  " .. name
+    TabButton.TextColor3 = Color3.fromRGB(180, 180, 180)
+    TabButton.TextSize = 11
+    TabButton.TextXAlignment = Enum.TextXAlignment.Left
+    TabButton.Parent = Sidebar
+    
+    TabButton.MouseButton1Click:Connect(function()
+        if Config.IsMinimized then return end
+        for _, p in pairs(Pages) do p.Visible = false end
+        Page.Visible = true
+    end)
+    
+    Pages[name] = Page
+    return Page
+end
+
+-- Generate Dedicated Independent Pages
+local AimbotPage = CreatePage("Aimbot")
+local EspPage = CreatePage("ESP")
+local WallhackPage = CreatePage("Wallhacks")
+local FovPage = CreatePage("FOV Settings")
+local CombatPage = CreatePage("Autofarm/Kill")
+local AntiCheatPage = CreatePage("Anti-Cheat")
+local RapidFirePage = CreatePage("Rapid Fire")
+local MinimizePage = CreatePage("Minimize UI")
+
+Pages["Aimbot"].Visible = true -- Default starting page
+
+-- Utility Toggle Button Creator
+local function AddControlLayout(parent, titleText, callback)
+    local ActionButton = Instance.new("TextButton")
+    ActionButton.Size = UDim2.new(0, 240, 0, 45)
+    ActionButton.Position = UDim2.new(0, 15, 0, 20)
+    ActionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ActionButton.Font = Enum.Font.GothamBold
+    ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ActionButton.TextSize = 13
+    ActionButton.Text = titleText
+    ActionButton.Parent = parent
+    
+    local BCorner = Instance.new("UICorner")
+    BCorner.CornerRadius = UDim.new(0, 6)
+    BCorner.Parent = ActionButton
+
+    ActionButton.MouseButton1Click:Connect(callback)
+    return ActionButton
+end
+
+-- // Toggles Management Engine
+local function ToggleMinimize()
+    Config.IsMinimized = not Config.IsMinimized
+    if Config.IsMinimized then
+        MainFrame.Size = UDim2.new(0, 140, 0, 40) -- Shrinks to just top bar header layout width
+        PageContainer.Visible = false
+        Sidebar.Visible = false
+    else
+        MainFrame.Size = UDim2.new(0, 550, 0, 350) -- Restores layout specs
+        PageContainer.Visible = true
+        Sidebar.Visible = true
+    end
+    _G.MinBtn.Text = "Menu State: " .. (Config.IsMinimized and "MINIMIZED" or "MAXIMIZED") .. " [TAB]"
+    if _G.MobMinBtn then _G.MobMinBtn.Text = "MIN: " .. (Config.IsMinimized and "ON" or "OFF") end
+end
+
+local function ToggleAimbot()
+    Config.AimbotEnabled = not Config.AimbotEnabled
+    Config.FovEnabled = Config.AimbotEnabled
+    _G.AimBtn.Text = "Aimbot: " .. (Config.AimbotEnabled and "ACTIVE" or "OFF") .. " [A]"
+    if _G.MobAimBtn then _G.MobAimBtn.Text = "AIM: " .. (Config.AimbotEnabled and "ON" or "OFF") end
+end
+
+local function ToggleEsp()
+    Config.EspEnabled = not Config.EspEnabled
+    _G.EspBtn.Text = "ESP: " .. (Config.EspEnabled and "ACTIVE" or "OFF") .. " [E]"
+    if _G.MobEspBtn then _G.MobEspBtn.Text = "ESP: " .. (Config.EspEnabled and "ON" or "OFF") end
+end
+
+local function ToggleWallhack()
+    Config.WallhackEnabled = not Config.WallhackEnabled
+    _G.WhBtn.Text = "Wallhacks: " .. (Config.WallhackEnabled and "ACTIVE" or "OFF") .. " [W]"
+    if _G.MobWhBtn then _G.MobWhBtn.Text = "WH: " .. (Config.WallhackEnabled and "ON" or "OFF") end
+end
+
+local function ToggleAutoFarm()
+    Config.AutoFarmEnabled = not Config.AutoFarmEnabled
+    _G.FarmBtn.Text = "Autofarm / Autokill: " .. (Config.AutoFarmEnabled and "ACTIVE" or "OFF")
+end
+
+local function ToggleAutoShoot()
+    Config.AutoShootEnabled = not Config.AutoShootEnabled
+    _G.ShootBtn.Text = "Auto Shoot: " .. (Config.AutoShootEnabled and "ACTIVE" or "OFF") .. " [J]"
+    if _G.MobShootBtn then _G.MobShootBtn.Text = "SHOOT: " .. (Config.AutoShootEnabled and "ON" or "OFF") end
+end
+
+local function ToggleAntiCheat()
+    Config.AntiCheatBypass = not Config.AntiCheatBypass
+    _G.AcBtn.Text = "Anti-Cheat Bypass: " .. (Config.AntiCheatBypass and "ACTIVE" or "OFF") .. " [K]"
+    if _G.MobAcBtn then _G.MobAcBtn.Text = "BYPASS: " .. (Config.AntiCheatBypass and "ON" or "OFF") end
+end
+
+local function ToggleRapidFire()
+    Config.RapidFireEnabled = not Config.RapidFireEnabled
+    _G.RapidBtn.Text = "Rapid Fire Mod: " .. (Config.RapidFireEnabled and "ACTIVE" or "OFF") .. " [N]"
+    if _G.MobRapidBtn then _G.MobRapidBtn.Text = "RAPID: " .. (Config.RapidFireEnabled and "ON" or "OFF") end
+end
+
+_G.AimBtn = AddControlLayout(AimbotPage, "Toggle Aimbot [A]", ToggleAimbot)
+_G.EspBtn = AddControlLayout(EspPage, "Toggle ESP [E]", ToggleEsp)
+_G.WhBtn = AddControlLayout(WallhackPage, "Toggle Wallhacks [W]", ToggleWallhack)
+_G.FarmBtn = AddControlLayout(CombatPage, "Toggle Autofarm / Autokill", ToggleAutoFarm)
+_G.ShootBtn = AddControlLayout(CombatPage, "Toggle Auto Shoot [J]", ToggleAutoShoot)
+_G.ShootBtn.Position = UDim2.new(0, 15, 0, 75)
+_G.AcBtn = AddControlLayout(AntiCheatPage, "Toggle Anti-Cheat Bypass [K]", ToggleAntiCheat)
+_G.RapidBtn = AddControlLayout(RapidFirePage, "Toggle Rapid Fire Mode [N]", ToggleRapidFire)
+_G.MinBtn = AddControlLayout(MinimizePage, "Toggle Menu Size state [TAB]", ToggleMinimize)
+
+-- // 3. Master Pop-Up Hub Trigger Button (Open / Close main GUI)
+local PopUpToggleButton = Instance.new("TextButton")
+PopUpToggleButton.Size = UDim2.new(0, 60, 0, 60)
+PopUpToggleButton.Position = UDim2.new(0, 15, 0.25, 0)
+PopUpToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+PopUpToggleButton.Font = Enum.Font.GothamBold
+PopUpToggleButton.Text = "VINTAGE"
+PopUpToggleButton.TextColor3 = Config.FovColor
+PopUpToggleButton.TextSize = 10
+PopUpToggleButton.Parent = ScreenGui
+
+local HubCorner = Instance.new("UICorner")
+HubCorner.CornerRadius = UDim.new(1, 0)
+HubCorner.Parent = PopUpToggleButton
+
+PopUpToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+CloseUiBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Make Open/Close Floating Hub Draggable
+local popDragging, popDragStart, popStartPos
+PopUpToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        popDragging = true; popDragStart = input.Position; popStartPos = PopUpToggleButton.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if popDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - popDragStart
+        PopUpToggleButton.Position = UDim2.new(popStartPos.X.Scale, popStartPos.X.Offset + delta.X, popStartPos.Y.Scale, popStartPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then popDragging = false end
+end)
+
+
+-- // 4. Draggable FOV Slider Module (Inside FOV Settings Page)
+local SliderLabel = Instance.new("TextLabel")
+SliderLabel.Size = UDim2.new(1, 0, 0, 30)
+SliderLabel.Position = UDim2.new(0, 15, 0, 15)
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.Font = Enum.Font.GothamSemibold
+SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SliderLabel.TextSize = 14
+SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+SliderLabel.Text = "FOV Radius: " .. tostring(Config.FovRadius)
+SliderLabel.Parent = FovPage
+
+local SliderTrack = Instance.new("Frame")
+SliderTrack.Size = UDim2.new(0, 320, 0, 8)
+SliderTrack.Position = UDim2.new(0, 15, 0, 55)
+SliderTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SliderTrack.Parent = FovPage
+
+local SliderFill = Instance.new("Frame")
+SliderFill.Size = UDim2.new(0, 0, 1, 0)
+SliderFill.BackgroundColor3 = Config.FovColor
+SliderFill.BorderSizePixel = 0
+SliderFill.Parent = SliderTrack
+
+local SliderKnob = Instance.new("TextButton")
+SliderKnob.Size = UDim2.new(0, 18, 0, 18)
+SliderKnob.Position = UDim2.new(0, 0, 0.5, -9)
+SliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SliderKnob.Text = ""
+SliderKnob.Parent = SliderTrack
+
+local KnobCorner = Instance.new("UICorner")
+KnobCorner.CornerRadius = UDim.new(1, 0)
+KnobCorner.Parent = SliderKnob
+
+local sliderActive = false
+local function UpdateSlider(input)
+    local relativeX = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
+    SliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+    SliderKnob.Position = UDim2.new(relativeX, -9, 0.5, -9)
+    
+    local calculatedValue = math.floor(Config.FovMin + (relativeX * (Config.FovMax - Config.FovMin)))
+    Config.FovRadius = calculatedValue
+    FovCircle.Radius = calculatedValue
+    SliderLabel.Text = "FOV Radius: " .. tostring(calculatedValue)
+end
+
+SliderKnob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliderActive = true end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliderActive = false end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if sliderActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then UpdateSlider(input) end
+end)
+
+-- Default initialization mapping
+local initialPercentage = (200 - Config.FovMin) / (Config.FovMax - Config.FovMin)
+SliderFill.Size = UDim2.new(initialPercentage, 0, 1, 0)
+SliderKnob.Position = UDim2.new(initialPercentage, -9, 0.5, -9)
+
+
+-- // 5. Universal Mobile Controls Tray UI Layer
+local MobileContainer = Instance.new("Frame")
+MobileContainer.Size = UDim2.new(0, 520, 0, 50)
+MobileContainer.Position = UDim2.new(0.5, -260, 0.85, 0)
+MobileContainer.BackgroundTransparency = 1
+MobileContainer.Parent = ScreenGui
+
+local MobileList = Instance.new("UIListLayout")
+MobileList.FillDirection = Enum.FillDirection.Horizontal
+MobileList.SortOrder = Enum.SortOrder.LayoutOrder
+MobileList.Padding = UDim.new(0, 5)
+MobileList.Parent = MobileContainer
+
+local function CreateMobileButton(text, color, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 68, 0, 40)
+    btn.BackgroundColor3 = color
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 10
+    btn.Text = text
+    btn.Parent = MobileContainer
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = btn
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+_G.MobAimBtn   = CreateMobileButton("AIM: OFF", Color3.fromRGB(180, 40, 40), ToggleAimbot)
+_G.MobEspBtn   = CreateMobileButton("ESP: OFF", Color3.fromRGB(40, 140, 40), ToggleEsp)
+_G.MobWhBtn    = CreateMobileButton("WH: OFF", Color3.fromRGB(40, 40, 180), ToggleWallhack)
+_G.MobShootBtn = CreateMobileButton("SHOOT: OFF", Color3.fromRGB(140, 40, 140), ToggleAutoShoot)
+_G.MobAcBtn    = CreateMobileButton("BYPASS: OFF", Color3.fromRGB(100, 100, 100), ToggleAntiCheat)
+_G.MobRapidBtn = CreateMobileButton("RAPID: OFF", Color3.fromRGB(210, 120, 20), ToggleRapidFire)
+_G.MobMinBtn   = CreateMobileButton("MIN: OFF", Color3.fromRGB(60, 60, 60), ToggleMinimize)
+
+
+-- // 6. Native Interface Panel Dragging Core Engine
+local dragging, dragInput, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+    end
+end)
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
+
+
+-- // 7. Calculations Engine & Targeting Algorithms
+local function GetClosestPlayer()
+    local ClosestPlayer = nil
+    local ShortestDistance = math.huge
+
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild(Config.LockPart) and Player.Character:FindFirstChildOfClass("Humanoid") and Player.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+            local Pos, OnScreen = Camera:WorldToViewportPoint(Player.Character[Config.LockPart].Position)
+            if OnScreen then
+                local Distance = (Vector2.new(Pos.X, Pos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+                if Distance < ShortestDistance and Distance <= Config.FovRadius then
+                    ClosestPlayer = Player
+                    ShortestDistance = Distance
+                end
+            end
+        end
+    end
+    return ClosestPlayer
+end
+
+-- Keyboard Input Bind Observers
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Config.AimbotKey then ToggleAimbot()
+    elseif input.KeyCode == Config.EspKey then ToggleEsp()
+    elseif input.KeyCode == Config.WallhackKey then ToggleWallhack()
+    elseif input.KeyCode == Config.AutoShootKey then ToggleAutoShoot()
+    elseif input.KeyCode == Config.AntiCheatKey then ToggleAntiCheat()
+    elseif input.KeyCode == Config.RapidFireKey then ToggleRapidFire()
+    elseif input.KeyCode == Config.MinimizeKey then ToggleMinimize()
+    end
+end)
+
+
+-- // 8. Master Performance Rendering Worker Loop
+RunService.RenderStepped:Connect(function()
+    -- Vector Ring FOV Placement
+    if Config.FovEnabled then
+        FovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        FovCircle.Visible = true
+    else
+        FovCircle.Visible = false
+    end
+
+    local Target = GetClosestPlayer()
+
+    -- Aimbot Head Lock
+    if Config.AimbotEnabled and Target and Target.Character and Target.Character:FindFirstChild(Config.LockPart) then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Character[Config.LockPart].Position)
+    end
+
+    -- Autofarm / Autokill Thread Execution (Maintains position behind target root)
+    if Config.AutoFarmEnabled and Target and Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
+        local TargetHRP = Target.Character.HumanoidRootPart
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = TargetHRP.CFrame * CFrame.new(0, 0, 3)
+        end
+    end
+
+    -- Auto Shoot Tool Trigger Simulation
+    if Config.AutoShootEnabled and Target then
+        VirtualInputManager:FireMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, true, game, 1)
+        task.wait(0.02)
+        VirtualInputManager:FireMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, false, game, 1)
+    end
+
+    -- Rapid Fire Performance Engine Mod
+    if Config.RapidFireEnabled then
+        local Tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if Tool then
+            -- Bypasses classic click cooldown attributes via local registry activation flags
+            Tool:Activate()
+            if Tool:FindFirstChild("Activated") then
+                Tool.Activated:Fire()
+            end
+        end
+    end
+
+    -- Anti-Cheat State Safety Sandbox
+    if Config.AntiCheatBypass then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            local hum = LocalPlayer.Character.Humanoid
+            if hum.WalkSpeed > 16 then hum.WalkSpeed = 16 end
+        end
+    end
+
+    -- Visual Highlights (ESP & Wallhacks Rendering Updates)
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character then
+            -- Wallhack Highlight Component
+            local Highlight = Player.Character:FindFirstChild("VS_Highlight")
+            if Config.WallhackEnabled then
+                if not Highlight then
+                    Highlight = Instance.new("Highlight")
+                    Highlight.Name = "VS_Highlight"
+                    Highlight.FillColor = Color3.fromRGB(240, 50, 50)
+                    Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    Highlight.FillTransparency = 0.45
+                    Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    Highlight.Parent = Player.Character
+                end
+            else
+                if Highlight then Highlight:Destroy() end
+            end
+
+            -- Overhead Name Label Billboard Components
+            local BbEsp = Player.Character:FindFirstChild("VS_Esp")
+            if Config.EspEnabled then
+                if not BbEsp and Player.Character:FindFirstChild("Head") then
+                    BbEsp = Instance.new("BillboardGui")
+                    BbEsp.Name = "VS_Esp"
+                    BbEsp.AlwaysOnTop = true
+                    BbEsp.Size = UDim2.new(0, 100, 0, 30)
+                    BbEsp.Adornee = Player.Character.Head
+                    BbEsp.StudsOffset = Vector3.new(0, 2.6, 0)
+                    
+                    local EspText = Instance.new("TextLabel")
+                    EspText.Size = UDim2.new(1, 0, 1, 0)
+                    EspText.BackgroundTransparency = 1
+                    EspText.Text = Player.Name
+                    EspText.TextColor3 = Color3.fromRGB(50, 255, 140)
+                    EspText.Font = Enum.Font.GothamBold
+                    EspText.TextSize = 11
+                    EspText.Parent = BbEsp
+                    
+                    BbEsp.Parent = Player.Character
+                end
+            else
+                if BbEsp then BbEsp:Destroy() end
+            end
+        end
+    end
+end)
