@@ -498,9 +498,9 @@ RunService.RenderStepped:Connect(function()
 
     -- Auto Shoot Tool Trigger Simulation
     if Config.AutoShootEnabled and Target then
-        VirtualInputManager:FireMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, true, game, 1)
-        task.wait(0.02)
-        VirtualInputManager:FireMouseButtonEvent(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, false, game, 1)
+        VirtualInputManager:FireMouseButtonEventRightlick(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, true, game, 1)
+        task.wait(0.07)
+        VirtualInputManager:FireMouseButtonEventRightlick(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2, 0, true, game, 1)
     end
 
     -- Rapid Fire Performance Engine Mod
