@@ -259,11 +259,45 @@ local function ToggleAntiCheat()
     if _G.MobAcBtn then _G.MobAcBtn.Text = "BYPASS: " .. (Config.AntiCheatBypass and "ON" or "OFF") end
 end
 
-local function ToggleRapidFire()
-    Config.RapidFireEnabled = not Config.RapidFireEnabled
-    _G.RapidBtn.Text = "Rapid Fire Mod: " .. (Config.RapidFireEnabled and "ACTIVE" or "OFF") .. " [N]"
-    if _G.MobRapidBtn then _G.MobRapidBtn.Text = "RAPID: " .. (Config.RapidFireEnabled and "ON" or "OFF") end
+-- Server Script inside the Tool
+local tool = script.Parent
+local fireEvent = tool:WaitForChild("FireEvent")
+
+-- Simple function to create a physical bullet
+local function createBullet(startPos, targetPos)
+	local bullet = Instance.new("Part")
+	bullet.Size = Vector3.new(0.2, 0.2, 2)
+	bullet.Color = Color3.fromRGB(255, 255, 0) -- Yellow tracer
+	bullet.Material = Enum.Material.Neon
+	bullet.CanCollide = false
+	bullet.CFrame = CFrame.lookAt(startPos, targetPos)
+	bullet.Parent = workspace
+	
+	-- Add velocity to make it fly
+	local velocity = Instance.new("LinearVelocity")
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = bullet
+	
+	velocity.MaxForce = math.huge
+	velocity.VectorVelocity = (targetPos - startPos).Unit * 150 -- Bullet speed
+	velocity.Attachment0 = attachment
+	velocity.Parent = bullet
+	
+	-- Destroy bullet after 3 seconds so game doesn't lag
+	game:GetService("Debris"):AddItem(bullet, 3)
 end
+
+fireEvent.OnServerEvent:Connect(function(player, targetPosition)
+	local character = player.Character
+	if not character then return end
+	
+	local handle = tool:FindFirstChild("Handle")
+	if not handle then return end
+	
+	-- Spawn the bullet from the gun's handle towards where the mouse clicked
+	createBullet(handle.Position, targetPosition)
+end)
+
 
 _G.AimBtn = AddControlLayout(AimbotPage, "Toggle Aimbot [A]", ToggleAimbot)
 _G.EspBtn = AddControlLayout(EspPage, "Toggle ESP [E]", ToggleEsp)
@@ -412,7 +446,7 @@ _G.MobEspBtn   = CreateMobileButton("ESP: OFF", Color3.fromRGB(40, 140, 40), Tog
 _G.MobWhBtn    = CreateMobileButton("WH: OFF", Color3.fromRGB(40, 40, 180), ToggleWallhack)
 _G.MobShootBtn = CreateMobileButton("SHOOT: OFF", Color3.fromRGB(140, 40, 140), ToggleAutoShoot)
 _G.MobAcBtn    = CreateMobileButton("BYPASS: OFF", Color3.fromRGB(100, 100, 100), ToggleAntiCheat)
-_G.MobRapidBtn = CreateMobileButton("RAPID: OFF", Color3.fromRGB(210, 120, 20), ToggleRapidFire)
+_G.MobRapidBtn = CreateMobileButton("RAPID: ON", Color3.fromRGB(210, 120, 20), ToggleRapidFire)
 _G.MobMinBtn   = CreateMobileButton("MIN: OFF", Color3.fromRGB(60, 60, 60), ToggleMinimize)
 
 
